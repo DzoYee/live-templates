@@ -59,6 +59,76 @@ describe("$TM_FILENAME_BASE$", () => {
 
 ```
 
+### Mock Extended Helper
+[Using Jest-mock-extended for type safety](https://github.com/marchaos/jest-mock-extended)
+
+```tsx
+import { mock } from 'jest-mock-extended';
+import { Repository, Connection } from 'typeorm';
+import { Example } from '../entity/Example';
+import { AnotherExample } from '../entity/AnotherExample';
+
+export const mockCompanyRepo = mock<Repository<Example>>();
+export const mockAnotherExampleRepo = mock<Repository<AnotherExample>>();
+
+export const mockGetConnection = () => {
+  return {
+    manager: {
+      getRepository: (type: any) => {
+        switch (type) {
+          case Company:
+            return mockCompanyRepo;
+          case AnotherExample:
+            return mockAnotherExampleRepo;
+          default:
+            const error = `You need to add a mock repo for "${type}" to ${__filename}`;
+            console.error(error);
+            throw Error(error);
+        }
+      },
+    },
+  };
+};
+
+export const mockConnection = mock<Connection>();
+export const mockCreateConnection = jest.fn(() =>
+  Promise.resolve(mockConnection),
+);
+```
+Required [Manual Mock Scaffolding](https://jestjs.io/docs/en/manual-mocks)
+
+```tsx
+import {
+  mockGetConnection,
+  mockCreateConnection,
+} from '../src/__tests__/mockedRepositories';
+
+const typeorm = jest.genMockFromModule('typeorm') as any;
+
+typeorm.Column = () => jest.fn();
+typeorm.Entity = () => jest.fn();
+typeorm.PrimaryGeneratedColumn = () => jest.fn();
+typeorm.ManyToOne = () => jest.fn();
+typeorm.JoinColumn = () => jest.fn();
+typeorm.OneToMany = () => jest.fn();
+typeorm.OneToOne = () => jest.fn();
+typeorm.getConnection = mockGetConnection;
+typeorm.createConnection = mockCreateConnection;
+
+module.exports = typeorm;
+```
+Example Usage
+
+```tsx
+import { mockCompanyRepo } from '../../mockedRepositories';
+
+describe('POST /', () => {
+  test('does something but with typesafety', (done) => {
+    mockExampleRepo.findOne.mockResolvedValue({"This is typesafe"});
+  });
+});
+```
+
 ## Hooks
 ### `us`
 Use State Hook
@@ -77,6 +147,15 @@ useEffect(() => {
   };
 }, [$input$]);
 $END$
+```
+
+### 'ums'
+Use Make Styles
+
+```ts
+const useStyles = makeStyles(() => ({
+  $END$
+}));
 ```
 
 ## License
